@@ -20,7 +20,7 @@ use crate::{
     DpeProfile,
 };
 use core::mem::size_of;
-use zerocopy::{FromBytes, Immutable, KnownLayout};
+use zerocopy::{FromBytes, Immutable, KnownLayout, TryFromBytes};
 
 mod certify_key;
 mod derive_context;
@@ -134,7 +134,7 @@ pub trait CommandExecution {
     Debug,
     PartialEq,
     Eq,
-    zerocopy::FromBytes,
+    zerocopy::TryFromBytes,
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
@@ -142,7 +142,7 @@ pub trait CommandExecution {
 pub struct CommandHdr {
     pub magic: u32,
     pub cmd_id: u32,
-    pub profile: u32,
+    pub profile: DpeProfile,
 }
 
 impl CommandHdr {
@@ -152,7 +152,7 @@ impl CommandHdr {
         CommandHdr {
             magic: Self::DPE_COMMAND_MAGIC,
             cmd_id,
-            profile: profile as u32,
+            profile,
         }
     }
 
@@ -160,7 +160,7 @@ impl CommandHdr {
         let header = CommandHdr::try_from(raw)?;
         // The client doesn't know what profile is implemented when calling the `GetProfile`
         // command. But, all other commands should be directed towards the correct profile.
-        if header.cmd_id != Command::GET_PROFILE && header.profile != profile as u32 {
+        if header.cmd_id != Command::GET_PROFILE && header.profile != profile {
             return Err(DpeErrorCode::InvalidCommand);
         }
         Ok(header)
@@ -172,7 +172,7 @@ impl TryFrom<&[u8]> for CommandHdr {
 
     fn try_from(raw: &[u8]) -> Result<Self, Self::Error> {
         let (header, _remaining_bytes) =
-            CommandHdr::read_from_prefix(raw).map_err(|_| DpeErrorCode::InvalidCommand)?;
+            CommandHdr::try_read_from_prefix(raw).map_err(|_| DpeErrorCode::InvalidCommand)?;
         if header.magic != Self::DPE_COMMAND_MAGIC {
             return Err(DpeErrorCode::InvalidCommand);
         }
@@ -220,7 +220,7 @@ pub mod tests {
     const DEFAULT_COMMAND: CommandHdr = CommandHdr {
         magic: CommandHdr::DPE_COMMAND_MAGIC,
         cmd_id: Command::GET_PROFILE,
-        profile: DPE_PROFILE as u32,
+        profile: DPE_PROFILE,
     };
 
     #[test]
@@ -260,9 +260,9 @@ pub mod tests {
         // Test wrong profile.
         let profile = DPE_PROFILE;
         #[cfg(feature = "dpe_profile_p256_sha256")]
-        let wrong_profile = DpeProfile::P384Sha384 as u32;
+        let wrong_profile = DpeProfile::P384Sha384;
         #[cfg(feature = "dpe_profile_p384_sha384")]
-        let wrong_profile = DpeProfile::P256Sha256 as u32;
+        let wrong_profile = DpeProfile::P256Sha256;
 
         // All commands should check the profile except GetProfile.
         assert_eq!(
