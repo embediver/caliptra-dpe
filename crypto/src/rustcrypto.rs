@@ -11,7 +11,6 @@ use crate::{
     Hasher, PubKey, SignatureAlgorithm, SignatureType, MAX_EXPORTED_CDI_SIZE,
 };
 
-#[cfg(feature = "ml-dsa")]
 use {
     crate::ml_dsa::{ExternalMu, MldsaAlgorithm, MldsaPublicKey, MldsaSignature},
     ml_dsa::{signature::Signer, KeyGen, KeyPair, MlDsa87},
@@ -36,7 +35,6 @@ use caliptra_cfi_derive_git::cfi_impl_fn;
 const RUSTCRYPTO_ECDSA_ERROR: CryptoError = CryptoError::CryptoLibError(1);
 const RUSTCRYPTO_SEC_ERROR: CryptoError = CryptoError::CryptoLibError(2);
 
-#[cfg(feature = "ml-dsa")]
 const RUSTCRYPTO_ML_DSA_ERROR: CryptoError = CryptoError::CryptoLibError(3);
 
 impl From<ecdsa::Error> for CryptoError {
@@ -51,14 +49,12 @@ impl From<sec1::Error> for CryptoError {
     }
 }
 
-#[cfg(feature = "ml-dsa")]
 impl From<pkcs8::Error> for CryptoError {
     fn from(_value: pkcs8::Error) -> Self {
         RUSTCRYPTO_ML_DSA_ERROR
     }
 }
 
-#[cfg(feature = "ml-dsa")]
 impl From<SizeError<&[u8], MldsaSignature>> for CryptoError {
     fn from(_value: SizeError<&[u8], MldsaSignature>) -> Self {
         RUSTCRYPTO_ML_DSA_ERROR
@@ -136,19 +132,16 @@ impl DigestType for Ecdsa384RustCrypto {
     const DIGEST_ALGORITHM: DigestAlgorithm = crate::Sha384::DIGEST_ALGORITHM;
 }
 
-#[cfg(feature = "ml-dsa")]
 pub type MldsaRustCrypto = RustCryptoImpl<ExternalMu, crate::Sha384>;
 
-#[cfg(feature = "ml-dsa")]
 impl CryptoSuite for MldsaRustCrypto {}
 
-#[cfg(feature = "ml-dsa")]
 impl SignatureType for MldsaRustCrypto {
     const SIGNATURE_ALGORITHM: SignatureAlgorithm = ExternalMu::SIGNATURE_ALGORITHM;
 }
 
 // TODO(clundin): Should this instead be an External Mu variant?
-#[cfg(feature = "ml-dsa")]
+
 impl DigestType for MldsaRustCrypto {
     const DIGEST_ALGORITHM: DigestAlgorithm = crate::Sha384::DIGEST_ALGORITHM;
 }
@@ -229,7 +222,6 @@ impl<S: SignatureType, D: DigestType> RustCryptoImpl<S, D> {
                     EcdsaPub::from_slice(&x, &y).into(),
                 ))
             }
-            #[cfg(feature = "ml-dsa")]
             alg @ SignatureAlgorithm::MlDsa(MldsaAlgorithm::ExternalMu87) => {
                 let secret = hkdf_get_priv_key(alg, cdi, label, info)?;
                 let kp = MlDsa87::key_gen_internal(
@@ -357,7 +349,6 @@ impl<S: SignatureType, D: DigestType> Crypto for RustCryptoImpl<S, D> {
                 let sig: p384::ecdsa::Signature = signing_key.sign_prehash(digest.as_slice())?;
                 Ok(EcdsaSig::from(sig).into())
             }
-            #[cfg(feature = "ml-dsa")]
             SignatureAlgorithm::MlDsa(MldsaAlgorithm::ExternalMu87) => {
                 let ml_dsa_secret = KeyPair::<MlDsa87>::from_pkcs8_pem(include_str!(concat!(
                     env!("OUT_DIR"),
@@ -391,7 +382,6 @@ impl<S: SignatureType, D: DigestType> Crypto for RustCryptoImpl<S, D> {
                         .sign_prehash(digest.as_slice())?;
                 Ok(EcdsaSig::from(sig).into())
             }
-            #[cfg(feature = "ml-dsa")]
             SignatureAlgorithm::MlDsa(MldsaAlgorithm::ExternalMu87) => {
                 let ml_dsa_secret =
                     MlDsa87::key_gen_internal(priv_key.0.as_slice().try_into().unwrap());

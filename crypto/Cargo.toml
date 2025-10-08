@@ -6,8 +6,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-rustcrypto = ["dep:hkdf", "dep:p256", "dep:p384", "dep:rand", "dep:sha2", "dep:base64ct", "dep:ecdsa", "dep:sec1"]
-ml-dsa = ["dep:ml-dsa", "dep:pkcs8"]
+rustcrypto = ["dep:hkdf", "dep:p256", "dep:p384", "dep:rand", "dep:sha2", "dep:base64ct", "dep:ecdsa", "dep:sec1", "dep:ml-dsa", "dep:pkcs8"]
 deterministic_rand = ["dep:rand"]
 no-cfi = []
 

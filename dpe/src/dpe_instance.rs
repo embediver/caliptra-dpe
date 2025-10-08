@@ -250,8 +250,7 @@ impl DpeInstance {
         let measurement = match (self.profile, measurement) {
             (DpeProfile::P256Sha256, Digest::Sha256(m)) => m.as_bytes(),
             (DpeProfile::P384Sha384, Digest::Sha384(m)) => m.as_bytes(),
-            #[cfg(feature = "ml-dsa")]
-            (DpeProfile::Mldsa87ExternalMu, Digest::Sha384(m)) => m.as_bytes(),
+            (DpeProfile::Mldsa87Sha384, Digest::Sha384(m)) => m.as_bytes(),
             _ => {
                 return Err(DpeErrorCode::InvalidArgument);
             }

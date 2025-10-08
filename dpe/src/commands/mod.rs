@@ -17,7 +17,7 @@ pub use self::certify_key::{
 
 #[cfg(feature = "ml-dsa")]
 pub use self::{
-    certify_key::CertifyKeyMldsaExternalMu87Cmd, derive_context::DeriveContextMldsaExternalMu87Cmd,
+    certify_key::CertifyKeyMldsa87Cmd, derive_context::DeriveContextMldsaExternalMu87Cmd,
 };
 
 #[cfg(not(feature = "disable_rotate_context"))]

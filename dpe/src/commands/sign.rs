@@ -148,8 +148,8 @@ fn execute(
             crypto::Sha384::read_from_bytes(digest)
                 .map_err(|_| DpeErrorCode::Crypto(crypto::CryptoError::Size))?,
         ),
-        #[cfg(feature = "ml-dsa")]
-        crate::DpeProfile::Mldsa87ExternalMu => {
+        #[cfg(feature = "dpe_profile_mldsa87_sha384")]
+        crate::DpeProfile::Mldsa87Sha384 => {
             let _ = digest;
             todo!("Add ML-DSA sign support")
         }
@@ -257,7 +257,7 @@ mod tests {
     use super::*;
     #[cfg(feature = "ml-dsa")]
     use crate::commands::{
-        sign::SignMldsaExternalMu87Cmd as SignCmd, CertifyKeyMldsaExternalMu87Cmd as CertifyKeyCmd,
+        sign::SignMldsaExternalMu87Cmd as SignCmd, CertifyKeyMldsa87Cmd as CertifyKeyCmd,
         DeriveContextMldsaExternalMu87Cmd as DeriveContextCmd,
     };
     #[cfg(feature = "dpe_profile_p256_sha256")]

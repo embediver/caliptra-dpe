@@ -37,7 +37,7 @@ pub enum CertifyKeyCommand<'a> {
     #[cfg(feature = "dpe_profile_p384_sha384")]
     P384(&'a CertifyKeyP384Cmd),
     #[cfg(feature = "ml-dsa")]
-    ExternalMu87(&'a CertifyKeyMldsaExternalMu87Cmd),
+    Mldsa87(&'a CertifyKeyMldsa87Cmd),
 }
 
 impl CertifyKeyCommand<'_> {
@@ -57,9 +57,9 @@ impl CertifyKeyCommand<'_> {
             DpeProfile::P384Sha384 => {
                 CertifyKeyCommand::parse_command(CertifyKeyCommand::P384, bytes)
             }
-            #[cfg(feature = "ml-dsa")]
-            DpeProfile::Mldsa87ExternalMu => {
-                CertifyKeyCommand::parse_command(CertifyKeyCommand::ExternalMu87, bytes)
+            #[cfg(feature = "dpe_profile_mldsa87_sha384")]
+            DpeProfile::Mldsa87Sha384 => {
+                CertifyKeyCommand::parse_command(CertifyKeyCommand::Mldsa87, bytes)
             }
             _ => Err(DpeErrorCode::InvalidArgument)?,
         }
@@ -81,7 +81,7 @@ impl CertifyKeyCommand<'_> {
             #[cfg(feature = "dpe_profile_p384_sha384")]
             CertifyKeyCommand::P384(cmd) => cmd.as_bytes(),
             #[cfg(feature = "ml-dsa")]
-            CertifyKeyCommand::ExternalMu87(cmd) => cmd.as_bytes(),
+            CertifyKeyCommand::Mldsa87(cmd) => cmd.as_bytes(),
         }
     }
 }
@@ -101,9 +101,9 @@ impl<'a> From<&'a CertifyKeyP384Cmd> for CertifyKeyCommand<'a> {
 }
 
 #[cfg(feature = "ml-dsa")]
-impl<'a> From<&'a CertifyKeyMldsaExternalMu87Cmd> for CertifyKeyCommand<'a> {
-    fn from(value: &'a CertifyKeyMldsaExternalMu87Cmd) -> Self {
-        CertifyKeyCommand::ExternalMu87(value)
+impl<'a> From<&'a CertifyKeyMldsa87Cmd> for CertifyKeyCommand<'a> {
+    fn from(value: &'a CertifyKeyMldsa87Cmd) -> Self {
+        CertifyKeyCommand::Mldsa87(value)
     }
 }
 
@@ -121,7 +121,7 @@ impl CommandExecution for CertifyKeyCommand<'_> {
             #[cfg(feature = "dpe_profile_p384_sha384")]
             CertifyKeyCommand::P384(cmd) => (&cmd.handle, cmd.format, cmd.label.as_slice()),
             #[cfg(feature = "ml-dsa")]
-            CertifyKeyCommand::ExternalMu87(cmd) => (&cmd.handle, cmd.format, cmd.label.as_slice()),
+            CertifyKeyCommand::Mldsa87(cmd) => (&cmd.handle, cmd.format, cmd.label.as_slice()),
         };
         let idx = env.state.get_active_context_pos(handle, locality)?;
         let context = &env.state.contexts[idx];
@@ -261,7 +261,7 @@ pub struct CertifyKeyP384Cmd {
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, FromBytes, IntoBytes, Immutable, KnownLayout)]
-pub struct CertifyKeyMldsaExternalMu87Cmd {
+pub struct CertifyKeyMldsa87Cmd {
     pub handle: ContextHandle,
     pub flags: CertifyKeyFlags,
     pub format: u32,
@@ -273,7 +273,7 @@ mod tests {
     use super::*;
     #[cfg(feature = "ml-dsa")]
     use crate::commands::{
-        CertifyKeyMldsaExternalMu87Cmd as CertifyKeyCmd,
+        CertifyKeyMldsa87Cmd as CertifyKeyCmd,
         DeriveContextMldsaExternalMu87Cmd as DeriveContextCmd,
     };
     #[cfg(feature = "dpe_profile_p256_sha256")]

@@ -30,7 +30,6 @@ use platform::{
 };
 use zerocopy::IntoBytes;
 
-#[cfg(feature = "ml-dsa")]
 use crypto::ml_dsa::{MldsaPublicKey, MldsaSignature};
 
 /// Max amount of backtracks during encoding.
@@ -133,9 +132,7 @@ impl CertWriter<'_> {
         DpeProfile::P256Sha256 => &[0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x04, 0x03, 0x02],
         // ECDSA with SHA384
         DpeProfile::P384Sha384 => &[0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x04, 0x03, 0x03],
-        // TODO(clundin): Include this in static profile refactor?
-        #[cfg(feature = "ml-dsa")]
-        DpeProfile::Mldsa87ExternalMu => &[],
+        DpeProfile::Mldsa87Sha384 => &[],
     };
 
     /// ASN.1 encoding with length stripped of the following OID.
@@ -143,7 +140,6 @@ impl CertWriter<'_> {
     ///     country(16) us(840) organization(1) gov(101) csor(3)
     ///     nistAlgorithm(4) sigAlgs(3) id-ml-dsa-87(19) }
     /// Source: https://datatracker.ietf.org/doc/draft-ietf-lamps-dilithium-certificates/
-    #[cfg(feature = "ml-dsa")]
     const MLDSA_OID: &'static [u8] = &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x03, 0x13];
 
     const EC_PUB_OID: &'static [u8] = &[0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x02, 0x01];
@@ -153,9 +149,7 @@ impl CertWriter<'_> {
         DpeProfile::P256Sha256 => &[0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07],
         // P384
         DpeProfile::P384Sha384 => &[0x2B, 0x81, 0x04, 0x00, 0x22],
-        // TODO(clundin): Include this in static profile refactor?
-        #[cfg(feature = "ml-dsa")]
-        DpeProfile::Mldsa87ExternalMu => &[],
+        DpeProfile::Mldsa87Sha384 => &[],
     };
 
     const HASH_OID: &'static [u8] = match DPE_PROFILE {
@@ -163,8 +157,8 @@ impl CertWriter<'_> {
         DpeProfile::P256Sha256 => &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01],
         // SHA384
         DpeProfile::P384Sha384 => &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02],
-        #[cfg(feature = "ml-dsa")]
-        DpeProfile::Mldsa87ExternalMu => &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02],
+        // SHA384
+        DpeProfile::Mldsa87Sha384 => &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02],
     };
 
     const RDN_COMMON_NAME_OID: [u8; 3] = [0x55, 0x04, 0x03];
@@ -386,7 +380,6 @@ impl CertWriter<'_> {
 
     /// Calculate the number of bytes for an MLDSA-87 signature AlgorithmIdentifier
     /// If `tagged`, include the tag and size fields
-    #[cfg(feature = "ml-dsa")]
     fn get_mldsa_sig_alg_id_size(tagged: bool) -> Result<usize, DpeErrorCode> {
         let len = Self::get_bytes_size(Self::MLDSA_OID, true)?;
         Self::get_structure_size(len, tagged)
@@ -410,7 +403,6 @@ impl CertWriter<'_> {
 
     /// Calculate the number of bytes an MLDSA-87 SubjectPublicKeyInfo will be
     /// If `tagged`, include the tag and size fields
-    #[cfg(feature = "ml-dsa")]
     fn get_mldsa_subject_pubkey_info_size(
         pubkey: &MldsaPublicKey,
         tagged: bool,
@@ -443,7 +435,6 @@ impl CertWriter<'_> {
                 Self::get_ecdsa_sig_alg_id_size(tagged)?
                     + Self::get_ecdsa_subject_pubkey_info_size(pubkey, tagged)?
             }
-            #[cfg(feature = "ml-dsa")]
             PubKey::MlDsa(pubkey) => {
                 Self::get_mldsa_sig_alg_id_size(tagged)?
                     + Self::get_mldsa_subject_pubkey_info_size(pubkey, tagged)?
@@ -463,7 +454,6 @@ impl CertWriter<'_> {
                 Self::get_ecdsa_sig_alg_id_size(tagged)?
                     + Self::get_ecdsa_signature_octet_string_size(sig, tagged)?
             }
-            #[cfg(feature = "ml-dsa")]
             Signature::MlDsa(sig) => {
                 Self::get_mldsa_sig_alg_id_size(tagged)?
                     + Self::get_mldsa_signature_octet_string_size(sig, tagged)?
@@ -473,7 +463,7 @@ impl CertWriter<'_> {
     }
 
     /// If `tagged`, include the tag and size fields
-    #[cfg(all(not(feature = "disable_csr"), feature = "ml-dsa"))]
+    #[cfg(not(feature = "disable_csr"))]
     fn get_mldsa_signature_octet_string_size(
         sig: &MldsaSignature,
         tagged: bool,
@@ -806,7 +796,6 @@ impl CertWriter<'_> {
     ) -> Result<usize, DpeErrorCode> {
         let pubkey_size = match pubkey {
             PubKey::Ecdsa(pubkey) => Self::get_ecdsa_subject_pubkey_info_size(pubkey, true)?,
-            #[cfg(feature = "ml-dsa")]
             PubKey::MlDsa(pubkey) => Self::get_mldsa_subject_pubkey_info_size(pubkey, true)?,
         };
         let cert_req_info_size = Self::get_integer_size(Self::CSR_V0, true)?
@@ -1339,7 +1328,6 @@ impl CertWriter<'_> {
                 // Signature
                 self.encode_ecdsa_signature_bit_string(sig)?
             }
-            #[cfg(feature = "ml-dsa")]
             Signature::MlDsa(sig) => {
                 // Alg ID
                 self.encode_mldsa_sig_alg_id()? +
@@ -1360,7 +1348,6 @@ impl CertWriter<'_> {
                 // Signature
                 self.encode_ecdsa_signature_octet_string(sig)?
             }
-            #[cfg(feature = "ml-dsa")]
             Signature::MlDsa(sig) => {
                 // Alg ID
                 self.encode_mldsa_sig_alg_id()? +
@@ -1403,7 +1390,7 @@ impl CertWriter<'_> {
     /// OCTET STRING containing
     ///
     /// MLDSA-87 Signature
-    #[cfg(all(not(feature = "disable_csr"), feature = "ml-dsa"))]
+    #[cfg(not(feature = "disable_csr"))]
     fn encode_mldsa_signature_octet_string(
         &mut self,
         sig: &MldsaSignature,
@@ -1424,7 +1411,6 @@ impl CertWriter<'_> {
     }
 
     /// DER-encodes the AlgorithmIdentifier for the MLDSA-87 signature algorithm
-    #[cfg(feature = "ml-dsa")]
     fn encode_mldsa_sig_alg_id(&mut self) -> Result<usize, DpeErrorCode> {
         let seq_size = Self::get_mldsa_sig_alg_id_size(false)?;
 
@@ -1436,7 +1422,6 @@ impl CertWriter<'_> {
     }
 
     /// Encode SubjectPublicKeyInfo for an MLDSA-87 public key
-    #[cfg(feature = "ml-dsa")]
     fn encode_mldsa_subject_pubkey_info(
         &mut self,
         pub_key: &MldsaPublicKey,
@@ -1457,7 +1442,6 @@ impl CertWriter<'_> {
     }
 
     /// BIT STRING containing signature
-    #[cfg(feature = "ml-dsa")]
     fn encode_mldsa_signature_bit_string(
         &mut self,
         sig: &MldsaSignature,
@@ -2349,7 +2333,6 @@ impl CertWriter<'_> {
         // signature
         bytes_written += match pubkey {
             PubKey::Ecdsa(_) => self.encode_ecdsa_sig_alg_id()?,
-            #[cfg(feature = "ml-dsa")]
             PubKey::MlDsa(_) => self.encode_mldsa_sig_alg_id()?,
         };
 
@@ -2365,7 +2348,6 @@ impl CertWriter<'_> {
         // subjectPublicKeyInfo
         bytes_written += match pubkey {
             PubKey::Ecdsa(pub_key) => self.encode_ecdsa_subject_pubkey_info(pub_key)?,
-            #[cfg(feature = "ml-dsa")]
             PubKey::MlDsa(pub_key) => self.encode_mldsa_subject_pubkey_info(pub_key)?,
         };
 
@@ -2479,7 +2461,6 @@ impl CertWriter<'_> {
             PubKey::Ecdsa(pub_key) => {
                 bytes_written += self.encode_ecdsa_subject_pubkey_info(pub_key)?;
             }
-            #[cfg(feature = "ml-dsa")]
             PubKey::MlDsa(pub_key) => {
                 bytes_written += self.encode_mldsa_subject_pubkey_info(pub_key)?;
             }
@@ -2735,7 +2716,6 @@ fn get_subject_key_identifier(
             hasher.update(x)?;
             hasher.update(y)?;
         }
-        #[cfg(feature = "ml-dsa")]
         PubKey::MlDsa(pub_key) => {
             hasher.update(pub_key.as_slice())?;
         }
@@ -2939,7 +2919,6 @@ pub(crate) mod tests {
     use crate::{DpeProfile, DPE_PROFILE};
     use crypto::ecdsa::{EcdsaAlgorithm, EcdsaSig};
     use crypto::ecdsa::{EcdsaPub, EcdsaPubKey};
-    #[cfg(feature = "ml-dsa")]
     use crypto::ml_dsa::{MldsaAlgorithm, MldsaSignature};
     use crypto::{PubKey, Signature, SignatureAlgorithm};
     use openssl::hash::{Hasher, MessageDigest};
@@ -3191,8 +3170,7 @@ pub(crate) mod tests {
         let mut hasher = match DPE_PROFILE {
             DpeProfile::P256Sha256 => Hasher::new(MessageDigest::sha256()).unwrap(),
             DpeProfile::P384Sha384 => Hasher::new(MessageDigest::sha384()).unwrap(),
-            #[cfg(feature = "ml-dsa")]
-            DpeProfile::Mldsa87ExternalMu => {
+            DpeProfile::Mldsa87Sha384 => {
                 unreachable!("tried to build ecdsa test cert for ml-dsa profile!")
             }
         };
@@ -3398,8 +3376,7 @@ pub(crate) mod tests {
         let mut hasher = match DPE_PROFILE {
             DpeProfile::P256Sha256 => Hasher::new(MessageDigest::sha256()).unwrap(),
             DpeProfile::P384Sha384 => Hasher::new(MessageDigest::sha384()).unwrap(),
-            #[cfg(feature = "ml-dsa")]
-            DpeProfile::Mldsa87ExternalMu => Hasher::new(MessageDigest::sha384()).unwrap(),
+            DpeProfile::Mldsa87Sha384 => Hasher::new(MessageDigest::sha384()).unwrap(),
         };
         hasher.update(pub_key).unwrap();
         let expected_key_identifier: &[u8] = &hasher.finish().unwrap();

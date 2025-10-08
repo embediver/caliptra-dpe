@@ -30,7 +30,7 @@ use {
 
 #[cfg(feature = "ml-dsa")]
 use {
-    commands::CertifyKeyMldsaExternalMu87Cmd as CertifyKeyCmd,
+    commands::CertifyKeyMldsa87Cmd as CertifyKeyCmd,
     commands::DeriveContextMldsaExternalMu87Cmd as DeriveContextCmd,
     crypto::MldsaRustCrypto as RustCrypto,
 };

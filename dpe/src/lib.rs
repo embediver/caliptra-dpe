@@ -78,9 +78,8 @@ pub enum DpeProfile {
     // Note: Min profiles (1 & 2) are not supported by this implementation
     P256Sha256 = 3,
     P384Sha384 = 4,
-    #[cfg(feature = "ml-dsa")]
-    Mldsa87ExternalMu = 5, // TODO(clundin): Added this to get past compiler / feature flags. We
-                           // will want a real solution here.
+    // Mldsa87Sha512 = 5, // See https://github.com/opencomputeproject/Security/pull/66
+    Mldsa87Sha384 = 255, // It seems to be unclear if SHA-512 or SHA-384 will be used
 }
 
 impl DpeProfile {
@@ -88,8 +87,7 @@ impl DpeProfile {
         match self {
             DpeProfile::P256Sha256 => 32,
             DpeProfile::P384Sha384 => 48,
-            #[cfg(feature = "ml-dsa")]
-            DpeProfile::Mldsa87ExternalMu => 48,
+            DpeProfile::Mldsa87Sha384 => 48,
         }
     }
     pub const fn ecc_int_size(&self) -> usize {
@@ -102,8 +100,7 @@ impl DpeProfile {
         match self {
             DpeProfile::P256Sha256 => crypto::SignatureAlgorithm::Ecdsa(EcdsaAlgorithm::Bit256),
             DpeProfile::P384Sha384 => crypto::SignatureAlgorithm::Ecdsa(EcdsaAlgorithm::Bit384),
-            #[cfg(feature = "ml-dsa")]
-            DpeProfile::Mldsa87ExternalMu => {
+            DpeProfile::Mldsa87Sha384 => {
                 crypto::SignatureAlgorithm::MlDsa(crypto::ml_dsa::MldsaAlgorithm::ExternalMu87)
             }
         }
@@ -116,8 +113,8 @@ pub const DPE_PROFILE: DpeProfile = DpeProfile::P256Sha256;
 #[cfg(feature = "dpe_profile_p384_sha384")]
 pub const DPE_PROFILE: DpeProfile = DpeProfile::P384Sha384;
 
-#[cfg(feature = "ml-dsa")]
-pub const DPE_PROFILE: DpeProfile = DpeProfile::Mldsa87ExternalMu;
+#[cfg(feature = "dpe_profile_mldsa87_sha384")]
+pub const DPE_PROFILE: DpeProfile = DpeProfile::Mldsa87Sha384;
 
 // Recursive macro that does a union of all the flags passed to it. This is
 // const and looks about as nice as using the | operator.

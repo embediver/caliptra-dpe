@@ -26,7 +26,6 @@ fn main() {
                 rand::{rngs::StdRng, SeedableRng},
                 sec1::{DecodeEcPrivateKey, EncodeEcPrivateKey},
             };
-            #[cfg(feature = "ml-dsa")]
             use {
                 ml_dsa::{KeyGen, KeyPair, MlDsa87},
                 pkcs8::{
@@ -72,7 +71,6 @@ fn main() {
                     .to_vec()
             };
 
-            #[cfg(feature = "ml-dsa")]
             {
                 let path_ml_dsa = Path::new(&out_dir).join("alias_priv_mldsa_87.pem");
                 let pem_ml_dsa = if Path::new(ALIAS_PRIV_MLDSA_87).exists() {

@@ -22,7 +22,6 @@ mod hkdf;
 
 pub mod ecdsa;
 
-#[cfg(feature = "ml-dsa")]
 pub mod ml_dsa;
 
 pub const MAX_EXPORTED_CDI_SIZE: usize = 32;
@@ -62,7 +61,6 @@ impl DigestAlgorithm {
 #[derive(Debug, Clone, Copy)]
 pub enum SignatureAlgorithm {
     Ecdsa(ecdsa::EcdsaAlgorithm),
-    #[cfg(feature = "ml-dsa")]
     MlDsa(ml_dsa::MldsaAlgorithm),
 }
 
@@ -184,7 +182,6 @@ impl From<[u8; 48]> for Digest {
 #[allow(clippy::large_enum_variant)]
 pub enum PubKey {
     Ecdsa(ecdsa::EcdsaPubKey),
-    #[cfg(feature = "ml-dsa")]
     MlDsa(ml_dsa::MldsaPublicKey),
 }
 
@@ -206,7 +203,6 @@ impl From<ecdsa::curve_384::EcdsaPub384> for PubKey {
     }
 }
 
-#[cfg(feature = "ml-dsa")]
 impl From<ml_dsa::MldsaPublicKey> for PubKey {
     fn from(pub_key: ml_dsa::MldsaPublicKey) -> Self {
         PubKey::MlDsa(pub_key)
@@ -217,7 +213,6 @@ impl From<ml_dsa::MldsaPublicKey> for PubKey {
 #[allow(clippy::large_enum_variant)]
 pub enum Signature {
     Ecdsa(EcdsaSignature),
-    #[cfg(feature = "ml-dsa")]
     MlDsa(ml_dsa::MldsaSignature),
 }
 
@@ -239,7 +234,6 @@ impl From<ecdsa::curve_384::EcdsaSignature384> for Signature {
     }
 }
 
-#[cfg(feature = "ml-dsa")]
 impl From<ml_dsa::MldsaSignature> for Signature {
     fn from(sig: ml_dsa::MldsaSignature) -> Self {
         Signature::MlDsa(sig)
@@ -275,7 +269,6 @@ pub trait CryptoSuite: Crypto + SignatureType + DigestType {
                 hasher.update(x)?;
                 hasher.update(y)?;
             }
-            #[cfg(feature = "ml-dsa")]
             (SignatureAlgorithm::MlDsa(_), PubKey::MlDsa(pub_key)) => {
                 hasher.update(pub_key.as_bytes())?;
             }

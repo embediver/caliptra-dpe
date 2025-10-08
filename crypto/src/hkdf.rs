@@ -4,7 +4,6 @@ use crate::{ecdsa::EcdsaAlgorithm, CryptoError, Digest, SignatureAlgorithm};
 use hkdf::Hkdf;
 use sha2::{Sha256, Sha384};
 
-#[cfg(feature = "ml-dsa")]
 use crate::ml_dsa::MldsaAlgorithm;
 
 impl From<hkdf::InvalidLength> for CryptoError {
@@ -33,7 +32,6 @@ pub fn hkdf_derive_cdi(
 
             Ok(cdi.to_vec())
         }
-        #[cfg(feature = "ml-dsa")]
         SignatureAlgorithm::MlDsa(MldsaAlgorithm::ExternalMu87) => {
             // This block assumes that the size of `xi` is the same as `SHA256`.
             const _: () = assert!(MldsaAlgorithm::ExternalMu87.seed_size() == 256 / 8);
@@ -68,7 +66,6 @@ pub fn hkdf_get_priv_key(
 
             Ok(priv_key.into())
         }
-        #[cfg(feature = "ml-dsa")]
         SignatureAlgorithm::MlDsa(MldsaAlgorithm::ExternalMu87) => {
             let hk = Hkdf::<Sha256>::new(Some(info), cdi);
             let mut priv_key = [0u8; MldsaAlgorithm::ExternalMu87.seed_size()];

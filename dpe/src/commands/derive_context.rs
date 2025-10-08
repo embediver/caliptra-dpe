@@ -104,8 +104,8 @@ impl DeriveContextCommand<'_> {
             DpeProfile::P384Sha384 => {
                 DeriveContextCommand::parse_command(DeriveContextCommand::P384, bytes)
             }
-            #[cfg(feature = "ml-dsa")]
-            DpeProfile::Mldsa87ExternalMu => {
+            #[cfg(feature = "dpe_profile_mldsa87_sha384")]
+            DpeProfile::Mldsa87Sha384 => {
                 DeriveContextCommand::parse_command(DeriveContextCommand::ExternalMu87, bytes)
             }
             _ => Err(DpeErrorCode::InvalidArgument)?,
@@ -622,7 +622,7 @@ mod tests {
     use super::*;
     #[cfg(feature = "ml-dsa")]
     use crate::commands::{
-        sign::SignMldsaExternalMu87Cmd as SignCmd, CertifyKeyMldsaExternalMu87Cmd as CertifyKeyCmd,
+        sign::SignMldsaExternalMu87Cmd as SignCmd, CertifyKeyMldsa87Cmd as CertifyKeyCmd,
         DeriveContextMldsaExternalMu87Cmd as DeriveContextCmd,
     };
     #[cfg(feature = "dpe_profile_p256_sha256")]
