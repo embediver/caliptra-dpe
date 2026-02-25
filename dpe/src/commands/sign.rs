@@ -436,61 +436,56 @@ mod tests {
         };
         let cert_bytes = certify_resp.cert().unwrap();
 
-        match DPE_PROFILE {
-            #[cfg(any(feature = "p256", feature = "p384"))]
-            DpeProfile::P256Sha256 | DpeProfile::P384Sha384 => {
-                let (r, s) = match sign_resp {
-                    #[cfg(feature = "p256")]
-                    SignResp::P256(resp) => (resp.sig_r.to_vec(), resp.sig_s.to_vec()),
-                    #[cfg(feature = "p384")]
-                    SignResp::P384(resp) => (resp.sig_r.to_vec(), resp.sig_s.to_vec()),
-                    _ => panic!("Incorrect response type"),
-                };
-                let sig = EcdsaSig::from_private_components(
-                    BigNum::from_slice(&r).unwrap(),
-                    BigNum::from_slice(&s).unwrap(),
-                )
-                .unwrap();
+        #[cfg(any(feature = "p256", feature = "p384"))]
+        {
+            #[allow(unreachable_patterns)]
+            let (r, s) = match sign_resp {
+                #[cfg(feature = "p256")]
+                SignResp::P256(resp) => (resp.sig_r.to_vec(), resp.sig_s.to_vec()),
+                #[cfg(feature = "p384")]
+                SignResp::P384(resp) => (resp.sig_r.to_vec(), resp.sig_s.to_vec()),
+                _ => panic!("Incorrect response type"),
+            };
+            let sig = EcdsaSig::from_private_components(
+                BigNum::from_slice(&r).unwrap(),
+                BigNum::from_slice(&s).unwrap(),
+            )
+            .unwrap();
 
-                let x509 = X509::from_der(cert_bytes).unwrap();
-                let pub_key = x509.public_key().unwrap().ec_key().unwrap();
+            let x509 = X509::from_der(cert_bytes).unwrap();
+            let pub_key = x509.public_key().unwrap().ec_key().unwrap();
 
-                assert!(sig.verify(&TEST_SIGN_DIGEST, &pub_key).unwrap());
-            }
-            #[cfg(feature = "ml-dsa")]
-            DpeProfile::Mldsa87 => {
-                use ml_dsa::signature::Verifier;
-                use ml_dsa::{EncodedSignature, EncodedVerifyingKey, VerifyingKey};
-                use x509_parser::nom::Parser;
-                use x509_parser::prelude::*;
-                use x509_parser::public_key::PublicKey;
+            assert!(sig.verify(&TEST_SIGN_DIGEST, &pub_key).unwrap());
+        }
+        #[cfg(feature = "ml-dsa")]
+        {
+            use ml_dsa::signature::Verifier;
+            use ml_dsa::{EncodedSignature, EncodedVerifyingKey, VerifyingKey};
+            use x509_parser::nom::Parser;
+            use x509_parser::prelude::*;
+            use x509_parser::public_key::PublicKey;
 
-                let sig_bytes = match sign_resp {
-                    SignResp::MlDsa(resp) => resp.sig,
-                    _ => panic!("Incorrect response type"),
-                };
-                let encoded_sig =
-                    EncodedSignature::<ml_dsa::MlDsa87>::try_from(sig_bytes.as_slice())
-                        .expect("Invalid signature length");
-                let sig =
-                    ml_dsa::Signature::decode(&encoded_sig).expect("Error decoding signature");
+            let sig_bytes = match sign_resp {
+                SignResp::MlDsa(resp) => resp.sig,
+                _ => panic!("Incorrect response type"),
+            };
+            let encoded_sig = EncodedSignature::<ml_dsa::MlDsa87>::try_from(sig_bytes.as_slice())
+                .expect("Invalid signature length");
+            let sig = ml_dsa::Signature::decode(&encoded_sig).expect("Error decoding signature");
 
-                let mut parser = X509CertificateParser::new().with_deep_parse_extensions(true);
-                let (_, cert) = parser.parse(cert_bytes).expect("Failed to parse cert");
+            let mut parser = X509CertificateParser::new().with_deep_parse_extensions(true);
+            let (_, cert) = parser.parse(cert_bytes).expect("Failed to parse cert");
 
-                let pub_key_parsed = cert.public_key().parsed().unwrap();
-                let key_bytes = match pub_key_parsed {
-                    PublicKey::Unknown(k) => k,
-                    _ => panic!("Expected unknown key type for ML-DSA"),
-                };
+            let pub_key_parsed = cert.public_key().parsed().unwrap();
+            let key_bytes = match pub_key_parsed {
+                PublicKey::Unknown(k) => k,
+                _ => panic!("Expected unknown key type for ML-DSA"),
+            };
 
-                let encoded_vk =
-                    EncodedVerifyingKey::<ml_dsa::MlDsa87>::try_from(key_bytes).unwrap();
-                let vk = VerifyingKey::<ml_dsa::MlDsa87>::decode(&encoded_vk);
+            let encoded_vk = EncodedVerifyingKey::<ml_dsa::MlDsa87>::try_from(key_bytes).unwrap();
+            let vk = VerifyingKey::<ml_dsa::MlDsa87>::decode(&encoded_vk);
 
-                assert!(vk.verify(&TEST_SIGN_DIGEST, &sig).is_ok());
-            }
-            _ => panic!("Unsupported profile"),
+            assert!(vk.verify(&TEST_SIGN_DIGEST, &sig).is_ok());
         }
     }
 }
